@@ -1,27 +1,33 @@
 import os
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-from datetime import datetime
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Any, Dict
 from dateutil import parser
-import collections
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
 
-@app.route('/api/analyze', methods=['POST'])
-def analyze_expenses():
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+class AnalyzeRequest(BaseModel):
+    expenses: List[Dict[str, Any]]
+
+@app.post('/api/analyze')
+def analyze_expenses(body: AnalyzeRequest):
     try:
-        data = request.get_json()
-        if not data or 'expenses' not in data:
-            return jsonify({"error": "No expenses provided"}), 400
+        expenses = body.expenses
 
-        expenses = data['expenses']
-        
         if not expenses:
-            return jsonify({
+            return {
                 "data": [],
                 "insight": "No expenses found for the selected period."
-            })
+            }
 
         # Process expenses without pandas
         processed_expenses = []
@@ -62,19 +68,20 @@ def analyze_expenses():
         else:
             insight = "Not enough data to generate insights."
 
-        return jsonify({
+        return {
             "data": monthly_list,
             "insight": insight
-        })
+        }
 
     except Exception as e:
         print(f"Error in analyze_expenses: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+        raise HTTPException(status_code=500, detail="Internal server error")
 
-@app.route('/api/health', methods=['GET'])
+@app.get('/api/health')
 def health_check():
-    return jsonify({"status": "healthy", "service": "Flask AI Service"})
+    return {"status": "healthy", "service": "FastAPI AI Service"}
 
 if __name__ == '__main__':
+    import uvicorn
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port)
+    uvicorn.run("app:app", host='0.0.0.0', port=port)

@@ -1,0 +1,23 @@
+# Environment
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+fincraft-llm-venv/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Testing & type checking
+.pytest_cache/
+.mypy_cache/
