@@ -1,11 +1,18 @@
 import os
-from fastapi import FastAPI, HTTPException
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import RedirectResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Any, Dict
 from dateutil import parser
+from typing import List, Dict, Any
+from openai import OpenAI
+
+load_dotenv()
 
 app = FastAPI()
+
+openai_client = OpenAI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -15,8 +22,38 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class UserQuery(BaseModel):
+    userQuery: str
+
+@app.post('/api/ai/chat')
+async def chat(query: UserQuery):
+    SYSTEM_PROMPT = """
+    You are Fincraft AI - a personal finance mentor. You should only and only answer questions related to personal finance which includes income, saving goals, expense and budget, and excludes anything related to investments. If user asks something other than money management, politely refuse to answer and redirect them to ask something related to personal finance.
+    """
+
+    response = openai_client.responses.create(
+        model = "gpt-5.2",
+        input = [
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT
+            },
+            {
+                "role": "user",
+                "content": query.userQuery
+            }
+        ],
+    )
+
+    print(f"🤖: {response.output_text}")
+    return response.output_text
+
+
+# ── /api/analyze  (expense trend analysis) ───────────────────────────────────
+
 class AnalyzeRequest(BaseModel):
     expenses: List[Dict[str, Any]]
+
 
 @app.post('/api/analyze')
 def analyze_expenses(body: AnalyzeRequest):
@@ -76,6 +113,10 @@ def analyze_expenses(body: AnalyzeRequest):
     except Exception as e:
         print(f"Error in analyze_expenses: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get('/')
+def root():
+    return RedirectResponse("/api/health")
 
 @app.get('/api/health')
 def health_check():

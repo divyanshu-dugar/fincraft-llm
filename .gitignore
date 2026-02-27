@@ -21,3 +21,5 @@ build/
 # Testing & type checking
 .pytest_cache/
 .mypy_cache/
+
+fincraft_rag
