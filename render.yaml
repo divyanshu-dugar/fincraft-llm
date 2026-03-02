@@ -2,7 +2,7 @@
     - type: web
       name: fincraft-llm
       env: python
-      buildCommand: ""
+      buildCommand: "pip install -r requirements.txt"
       startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
       plan: free
       region: oregon
